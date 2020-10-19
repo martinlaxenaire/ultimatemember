@@ -234,8 +234,11 @@ function um_ajax_get_members( directory, args ) {
 		sorting:        sorting,
 		gmt_offset:     gmt_hours,
 		post_refferer:  directory.data('base-post'),
-		nonce:          um_scripts.nonce
+		nonce:          um_scripts.nonce,
+		allow:          true
 	};
+
+	request = wp.hooks.applyFilters( 'um_member_directory_filter_request_before_ajax', request );
 
 	if ( directory.find('.um-search-filter').length ) {
 		directory.find('.um-search-filter').each( function() {
@@ -314,41 +317,47 @@ function um_ajax_get_members( directory, args ) {
 
 	request = wp.hooks.applyFilters( 'um_member_directory_filter_request', request );
 
-	wp.ajax.send( 'um_get_members', {
-		data:  request,
-		success: function( answer ) {
-			//set last data hard for using on layouts reloading
-			um_member_directory_last_data[ hash ] = answer;
+	if ( typeof request === 'undefined' || ( typeof request.allow !== 'undefined' && request.allow !== true ) ) {
+		setTimeout(function(){
+			um_ajax_get_members( directory, args )
+		}, 1000)
+	} else {
+		wp.ajax.send('um_get_members', {
+			data: request,
+			success: function (answer) {
+				//set last data hard for using on layouts reloading
+				um_member_directory_last_data[hash] = answer;
 
-			um_build_template( directory, answer );
+				um_build_template(directory, answer);
 
-			var pagination_template = wp.template( 'um-members-pagination' );
-			directory.find('.um-members-pagination-box').html( pagination_template( answer ) );
+				var pagination_template = wp.template('um-members-pagination');
+				directory.find('.um-members-pagination-box').html(pagination_template(answer));
 
-			directory.data( 'total_pages', answer.pagination.total_pages );
+				directory.data('total_pages', answer.pagination.total_pages);
 
-			if ( answer.pagination.total_pages ) {
-				directory.find( '.um-member-directory-sorting-options' ).prop( 'disabled', false );
-				directory.find( '.um-member-directory-view-type' ).removeClass( 'um-disabled' );
-			} else {
-				directory.find( '.um-member-directory-sorting-options' ).prop( 'disabled', true );
-				directory.find( '.um-member-directory-view-type' ).addClass( 'um-disabled' );
+				if (answer.pagination.total_pages) {
+					directory.find('.um-member-directory-sorting-options').prop('disabled', false);
+					directory.find('.um-member-directory-view-type').removeClass('um-disabled');
+				} else {
+					directory.find('.um-member-directory-sorting-options').prop('disabled', true);
+					directory.find('.um-member-directory-view-type').addClass('um-disabled');
+				}
+
+				//args.directory = directory;
+				wp.hooks.doAction('um_member_directory_loaded', directory, answer);
+				//jQuery( document ).trigger('um_members_rendered', [ directory, answer ] );
+
+				um_init_new_dropdown();
+
+				um_members_hide_preloader(directory);
+			},
+			error: function (data) {
+				console.log(data);
+
+				um_members_hide_preloader(directory);
 			}
-
-			//args.directory = directory;
-			wp.hooks.doAction( 'um_member_directory_loaded', directory, answer );
-			//jQuery( document ).trigger('um_members_rendered', [ directory, answer ] );
-
-			um_init_new_dropdown();
-
-			um_members_hide_preloader( directory );
-		},
-		error: function( data ) {
-			console.log( data );
-
-			um_members_hide_preloader( directory );
-		}
-	});
+		});
+	}
 }
 
 

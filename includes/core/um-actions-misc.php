@@ -186,6 +186,10 @@ function um_add_update_notice( $args ) {
 				$err = __( 'Your membership request has been rejected.', 'ultimate-member' );
 				break;
 
+			case 'invalid_nonce':
+				$err = __( 'Sorry, this page expired or was cached. The page is reloaded, please try that again.', 'ultimate-member' );
+				break;
+
 		}
 	}
 

@@ -68,7 +68,11 @@ if ( ! class_exists( 'um\core\Register' ) ) {
 			}
 
 			if ( ! wp_verify_nonce( $args['_wpnonce'], 'um_register_form' ) || empty( $args['_wpnonce'] ) || ! isset( $args['_wpnonce'] ) ) {
-				wp_die( __( 'Invalid Nonce.', 'ultimate-member' ) );
+				//wp_die( __( 'Invalid Nonce.', 'ultimate-member' ) );
+				exit( wp_redirect( add_query_arg( array(
+						'err'  => 'invalid_nonce',
+						'hash' => substr( md5( rand() ), 0, 6 )
+				), remove_query_arg( 'hash' ) ) ) );
 			}
 
 			return $args;
